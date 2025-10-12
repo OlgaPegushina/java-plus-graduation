@@ -26,7 +26,7 @@ public class StatsClient {
 
     public StatsClient(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
-        this.serviceName = "http://stats-server-id";
+        this.serviceName = "http://stats-server";
     }
 
     public ResponseEntity<EndpointHitDto> postHit(EndpointHitDto endpointHitDto) {

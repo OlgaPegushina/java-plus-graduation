@@ -8,7 +8,7 @@ import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
 
 @Configuration
-@LoadBalancerClient(name = "stats-server-id")
+@LoadBalancerClient(name = "stats-server")
 public class RestTemplateConfig {
 
     @Bean

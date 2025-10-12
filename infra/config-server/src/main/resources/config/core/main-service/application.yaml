@@ -21,10 +21,6 @@ spring:
         hibernate.format_sql: true
         hibernate.show_sql: true
 
-discovery:
-  services:
-    stats-server-id: stats-server
-
 logging:
   level:
     org.springframework.cloud.loadbalancer: DEBUG

@@ -1,6 +1,6 @@
-server:
-  port: 0
+#server:
+  #port: 0
 
-spring:
-  application:
-    name: stats-client
+#spring:
+ # application:
+ #   name: stats-client
