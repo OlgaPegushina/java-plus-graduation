@@ -1,13 +1,15 @@
-package stats.server;
+package gateway;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 
 @SpringBootApplication
 @EnableDiscoveryClient
-public class StatServerApp {
+@ConfigurationPropertiesScan
+public class GatewayServer {
     public static void main(String[] args) {
-        SpringApplication.run(StatServerApp.class, args);
+        SpringApplication.run(GatewayServer.class, args);
     }
 }

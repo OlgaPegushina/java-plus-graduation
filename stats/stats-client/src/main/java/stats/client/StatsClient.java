@@ -21,16 +21,16 @@ import static stats.dto.constant.Const.DATE_TIME_FORMAT;
 public class StatsClient {
 
     private final RestTemplate restTemplate;
-    private final String baseUrl;
+    private final String serviceName;
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern(DATE_TIME_FORMAT);
 
     public StatsClient(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
-        this.baseUrl = "http://stat-server:9090";
+        this.serviceName = "http://stats-server";
     }
 
     public ResponseEntity<EndpointHitDto> postHit(EndpointHitDto endpointHitDto) {
-        String url = baseUrl + "/hit";
+        String url = serviceName + "/hit";
         return restTemplate.postForEntity(url, endpointHitDto, EndpointHitDto.class);
     }
 
@@ -38,7 +38,7 @@ public class StatsClient {
         String startStr = start.format(DATE_TIME_FORMATTER);
         String endStr = end.format(DATE_TIME_FORMATTER);
 
-        StringBuilder urlBuilder = new StringBuilder(baseUrl)
+        StringBuilder urlBuilder = new StringBuilder(serviceName)
                 .append("/stats?start=").append(startStr)
                 .append("&end=").append(endStr)
                 .append("&unique=").append(unique);
