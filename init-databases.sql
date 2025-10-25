@@ -9,3 +9,6 @@ CREATE DATABASE user_db OWNER user_db;
 
 CREATE USER request_db WITH PASSWORD 'request_db';
 CREATE DATABASE request_db OWNER request_db;
+
+CREATE USER comment_db WITH PASSWORD 'comment_db';
+CREATE DATABASE comment_db OWNER comment_db;

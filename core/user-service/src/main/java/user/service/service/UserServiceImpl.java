@@ -74,10 +74,6 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new NotFoundException(String.format("Пользователь с id= %d не найден.", userId))));
     }
 
-/*    public Optional<User> findById(Long id) {
-        return userRepository.findById(id);
-    }*/
-
     private void validateEmailExist(String email, Long currentUserId) {
         Optional<User> alreadyExistUser = userRepository.findByEmail(email);
         if (alreadyExistUser.isPresent() && !alreadyExistUser.get().getId().equals(currentUserId)) {

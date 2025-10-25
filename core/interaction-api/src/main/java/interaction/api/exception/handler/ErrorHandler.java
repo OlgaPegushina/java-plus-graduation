@@ -37,7 +37,7 @@ public class ErrorHandler {
                 .build();
     }
 
-    @ExceptionHandler(DuplicatedDataException.class)
+    @ExceptionHandler({DuplicatedDataException.class, })
     @ResponseStatus(HttpStatus.CONFLICT)
     public ApiError repositoryDuplicatedDataExceptionHandle(Exception e) {
         log.error("Duplicated Data Exception error: ", e);

@@ -9,7 +9,6 @@ import org.mapstruct.MappingTarget;
 
 @Mapper(componentModel = "spring")
 public interface CategoryMapper {
-
     CategoryDto toCategoryDto(Category category);
 
     @Mapping(target = "id", ignore = true)

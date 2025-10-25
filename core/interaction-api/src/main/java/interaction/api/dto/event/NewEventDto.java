@@ -25,7 +25,6 @@ import static interaction.api.utility.AppConstants.DATE_TIME_FORMAT;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class NewEventDto {
-
     @Size(min = 20, max = 2000, message = "Поле annotation должно быть от 20 до 2000 символов")
     @NotBlank(message = "Поле annotation не может быть пустым")
     String annotation;

@@ -1,11 +1,16 @@
 package event.service.events.services.impls;
 
 import event.service.category.service.CategoryService;
+import event.service.feign.client.RequestClient;
+import feign.FeignException;
 import interaction.api.dto.event.EventFullDto;
 import interaction.api.dto.event.UpdateEventAdminRequest;
+import interaction.api.dto.request.ParticipationRequestDto;
 import interaction.api.exception.BadRequestException;
 import interaction.api.exception.ConflictException;
 import interaction.api.exception.NotFoundException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import stats.client.StatsClient;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -28,10 +33,12 @@ import stats.dto.dto.ViewStatsDto;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -46,25 +53,55 @@ public class AdminServiceImpl implements AdminService {
     LocationServiceImpl locationService;
     LocationMapper locationMapper;
     StatsClient statsClient;
+    RequestClient requestClient;
 
     @Transactional(readOnly = true)
     public List<EventFullDto> getEventsWithAdminFilters(List<Long> userIds, List<String> states, List<Long> categoryIds,
                                                         LocalDateTime rangeStart, LocalDateTime rangeEnd, Integer from, Integer size) {
 
-        log.debug("Получен запрос на получения админ события по фильтрам");
+        log.debug("Получен запрос на получения админ события по фильтрам с параметрами: " +
+                  "userIds={}, states={}, categoryIds={}, rangeStart={}, rangeEnd={}, from={}, size={}",
+                userIds, states, categoryIds, rangeStart, rangeEnd, from, size);
+
         if ((rangeStart != null) && (rangeEnd != null) && (rangeStart.isAfter(rangeEnd)))
             throw new BadRequestException("Время начала не может быть позже времени конца");
 
-        List<EventModel> events = eventRepository.findAllByFiltersAdmin(userIds, states, categoryIds, rangeStart, rangeEnd,
-                PageRequest.of(from, size));
+        List<EventState> eventStates = null;
+        if (states != null && !states.isEmpty()) {
+            try {
+                eventStates = states.stream()
+                        .map(String::toUpperCase)
+                        .map(EventState::valueOf)
+                        .collect(Collectors.toList());
+            } catch (IllegalArgumentException e) {
+                throw new BadRequestException("Передан неизвестный статус события: " + e.getMessage());
+            }
+        }
 
+        List<Long> finalUserIds = isEmpty(userIds) ? null : userIds;
+        List<EventState> finalEventStates = isEmpty(eventStates) ? null : eventStates;
+        List<Long> finalCategoryIds = isEmpty(categoryIds) ? null : categoryIds;
+
+        Pageable pageable = PageRequest.of(from / size, size);
+
+        Page<EventModel> eventsPage = eventRepository.findAllByFiltersAdmin(
+                finalUserIds,
+                finalEventStates,
+                finalCategoryIds,
+                rangeStart,
+                rangeEnd,
+                pageable
+        );
+
+        List<EventModel> events = eventsPage.getContent();
+        fillConfirmedRequestsInModels(events);
         Map<Long, Long> views = getAmountOfViews(events);
 
         log.debug("Собираем событие для ответа");
         return events.stream()
                 .map(eventModel -> {
                     EventFullDto eventFull = eventMapper.toFullDto(eventModel);
-                    eventFull.setViews(views.get(eventFull.getId()));
+                    eventFull.setViews(views.getOrDefault(eventFull.getId(), 0L));
                     return eventFull;
                 })
                 .collect(Collectors.toCollection(ArrayList::new));
@@ -84,9 +121,12 @@ public class AdminServiceImpl implements AdminService {
         changeEventState(event, updateRequest.getState());
         updateEventFields(event, updateRequest);
 
+        fillConfirmedRequestInModel(event);
+        eventRepository.save(event);
+
         log.debug("Сборка события для ответа");
         EventFullDto result = eventMapper.toFullDto(event);
-        result.setViews(getAmountOfViews(List.of(event)).get(eventId));
+        result.setViews(getAmountOfViews(List.of(event)).getOrDefault(eventId, 0L));
 
         return result;
     }
@@ -94,8 +134,48 @@ public class AdminServiceImpl implements AdminService {
     @Transactional(readOnly = true)
     @Override
     public EventFullDto getEventById(Long eventId) {
-        return eventMapper.toFullDto(eventRepository.findById(eventId)
-                .orElseThrow(() -> new NotFoundException(String.format("Событие с id= %d не найдено", eventId))));
+        EventModel event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new NotFoundException(String.format("Событие с id= %d не найдено", eventId)));
+
+        fillConfirmedRequestInModel(event);
+
+        EventFullDto dto = eventMapper.toFullDto(event);
+        dto.setViews(getAmountOfViews(List.of(event)).getOrDefault(eventId, 0L));
+        return dto;
+    }
+
+    private void fillConfirmedRequestsInModels(List<EventModel> events) {
+        if (events == null || events.isEmpty()) return;
+
+        List<Long> eventIds = events.stream()
+                .map(EventModel::getId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+        if (eventIds.isEmpty()) {
+            events.forEach(e -> e.setConfirmedRequests(0L));
+            return;
+        }
+
+        try {
+            Map<Long, List<ParticipationRequestDto>> confirmedMap = requestClient.prepareConfirmedRequests(eventIds);
+            events.forEach(event -> {
+                List<ParticipationRequestDto> reqs = confirmedMap.getOrDefault(event.getId(), Collections.emptyList());
+                event.setConfirmedRequests((long) reqs.size());
+            });
+        } catch (FeignException e) {
+            log.warn("Не удалось заполнить confirmedRequests для eventIds {}: Fallback 0L", eventIds, e);
+            events.forEach(event -> event.setConfirmedRequests(0L));
+        }
+    }
+
+    private void fillConfirmedRequestInModel(EventModel event) {
+        if (event != null && event.getId() != null) {
+            fillConfirmedRequestsInModels(List.of(event));
+        } else if (event != null) {
+            event.setConfirmedRequests(0L);
+        }
     }
 
     private void validateEventState(EventModel event, StateActionAdmin state) {
@@ -203,5 +283,9 @@ public class AdminServiceImpl implements AdminService {
             log.error("Не удалось получить статистику");
         }
         return viewsMap;
+    }
+
+    private <T> boolean isEmpty(Collection<T> collection) {
+        return collection == null || collection.isEmpty();
     }
  }

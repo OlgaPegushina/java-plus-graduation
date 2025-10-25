@@ -14,7 +14,6 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring",
         uses = { CategoryMapper.class, LocationMapper.class })
 public interface EventMapper {
-
     @Mapping(target = "id",               ignore = true)
     @Mapping(target = "annotation",       source = "dto.annotation")
     @Mapping(target = "description",      source = "dto.description")
@@ -23,14 +22,10 @@ public interface EventMapper {
     @Mapping(target = "participantLimit", source = "dto.participantLimit")
     @Mapping(target = "requestModeration",source = "dto.requestModeration")
     @Mapping(target = "title",            source = "dto.title")
-
-    // фиксируем первоначальные поля
     @Mapping(target = "state",             constant = "PENDING")
     @Mapping(target = "confirmedRequests", constant = "0L")
     @Mapping(target = "createdOn",         expression = "java(java.time.LocalDateTime.now())")
     @Mapping(target = "publishedOn",       ignore = true)
-
-    // объекты
     @Mapping(target = "category",  source = "category")
     @Mapping(target = "initiatorId", source = "userId")
     @Mapping(target = "location",  source = "location")
@@ -41,12 +36,14 @@ public interface EventMapper {
 
     @Mapping(source = "category", target = "categoryDto")
     @Mapping(source = "location", target = "locationDto")
-    @Mapping(source = "initiatorId", target = "initiatorId")
+    @Mapping(source = "initiatorId", target = "initiator")
     @Mapping(target = "views", ignore = true)
+    @Mapping(target = "confirmedRequests", source = "confirmedRequests")
     EventFullDto toFullDto(EventModel entity);
 
     @Mapping(source = "category", target = "category")
-    @Mapping(source = "initiatorId", target = "initiatorId")
+    @Mapping(source = "initiatorId", target = "initiator")
     @Mapping(target = "views", ignore = true)
+    @Mapping(target = "confirmedRequests", source = "confirmedRequests")
     EventShortDto toShortDto(EventModel entity);
 }

@@ -1,23 +1,21 @@
-package event.service.comment.service;
+package comment.service.service;
 
-import feign.FeignException;
+import comment.service.feign.client.EventClient;
+import comment.service.feign.client.UserClient;
+import comment.service.mapper.CommentMapper;
+import comment.service.model.Comment;
+import comment.service.repository.CommentRepository;
+import interaction.api.dto.comment.CommentDto;
+import interaction.api.dto.comment.NewCommentDto;
+import interaction.api.dto.event.EventFullDto;
 import interaction.api.dto.user.UserShortDto;
+import interaction.api.enums.EventState;
 import interaction.api.exception.ConflictException;
 import interaction.api.exception.NotFoundException;
-import interaction.api.exception.UserOperationFailedException;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import event.service.comment.CommentMapper;
-import event.service.comment.CommentRepository;
-import interaction.api.dto.comment.CommentDto;
-import interaction.api.dto.comment.NewCommentDto;
-import event.service.comment.model.Comment;
-import interaction.api.enums.EventState;
-import event.service.feign.client.UserClient;
-import event.service.events.model.EventModel;
-import event.service.events.repository.EventRepository;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -37,13 +35,13 @@ import java.util.Objects;
 public class CommentServiceImpl implements CommentService {
     CommentRepository commentRepository;
     UserClient userClient;
-    EventRepository eventRepository;
+    EventClient eventClient;
     CommentMapper commentMapper;
 
     @Override
     public List<CommentDto> findAllByEvent(Long eventId, Integer from, Integer size) {
         Pageable pageable = PageRequest.of(from > 0 ? from / size : 0, size, Sort.by(Sort.Direction.ASC, "id"));
-        return commentRepository.findAllByEventId(pageable, eventId).stream()
+        return commentRepository.findAllByEvent(pageable, eventId).stream()
                 .map(commentMapper::toCommentDto)
                 .toList();
     }
@@ -52,22 +50,17 @@ public class CommentServiceImpl implements CommentService {
     @Transactional
     public CommentDto create(Long userId, Long eventId, NewCommentDto newCommentDto) {
         log.info("Создание комментария для события id: {}, пользователем id: {}", eventId, userId);
-        EventModel event = eventRepository.findById(eventId)
-                .orElseThrow(() -> new NotFoundException(String.format("Событие с id= %d не найдено", eventId)));
+
+        EventFullDto event = eventClient.getEvent(eventId);
 
         if (!EventState.PUBLISHED.equals(event.getState())) {
             throw new ConflictException(String.format("Событие с id= %d не опубликовано", eventId));
         }
 
-        UserShortDto user;
-        try {
-            user = userClient.getUserById(userId);
-        } catch (FeignException e) {
-            throw new UserOperationFailedException(String.format("Не удалось получить пользователя по id= %d", userId));
-        }
+        UserShortDto user = userClient.getUserById(userId);
 
         Comment comment = commentMapper.toComment(newCommentDto);
-        comment.setEvent(event);
+        comment.setEvent(event.getId());
         comment.setAuthorId(user.getId());
         comment.setCreatedOn(LocalDateTime.now());
 
@@ -122,8 +115,8 @@ public class CommentServiceImpl implements CommentService {
     public CommentDto findByEventAndCommentId(Long eventId, Long commentId) {
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new NotFoundException(String.format("Комментарий id= %d не найден", commentId)));
-        if (!Objects.equals(eventId, comment.getEvent().getId())) {
-            throw new ConflictException(String.format("Комментарий id= %d не относится к событию id= %d",
+        if (!Objects.equals(eventId, comment.getId())) {
+            throw new ConflictException(String.format("Комментарий id= %d не относится к событию с id= %d",
                     comment.getId(), eventId));
         }
         return commentMapper.toCommentDto(comment);
@@ -134,17 +127,13 @@ public class CommentServiceImpl implements CommentService {
                 userId);
         Comment comment = validateCommentForEvent(eventId, commentId);
 
-        UserShortDto user;
-        try {
-            user = userClient.getUserById(userId);
-        } catch (FeignException e) {
-            throw new UserOperationFailedException(String.format("Не удалось получить пользователя по ID= %s", userId));
-        }
+        UserShortDto user = userClient.getUserById(userId);
 
         if (!user.getId().equals(comment.getAuthorId())) {
             throw new ConflictException(String.format("Комментарий id= %d не был создан пользователем с id= %d",
                     comment.getId(), user.getId()));
         }
+
         log.info("Комментарий с id: {} успешно валидирован для события id: {} и пользователя id: {}", commentId,
                 eventId, userId);
         return comment;
@@ -152,13 +141,12 @@ public class CommentServiceImpl implements CommentService {
 
     private Comment validateCommentForEvent(Long eventId, Long commentId) {
         log.info("Валидация комментария с id: {} для события с id: {}", commentId, eventId);
-        EventModel event = eventRepository.findById(eventId)
-                .orElseThrow(() -> new NotFoundException(String.format("Событие id= %d не найдено", eventId)));
+        EventFullDto event = eventClient.getEvent(eventId);
 
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new NotFoundException(String.format("Комментарий id= %d не найден", commentId)));
 
-        if (!Objects.equals(comment.getEvent().getId(), event.getId())) {
+        if (!Objects.equals(comment.getId(), event.getId())) {
             throw new ConflictException(String.format("Комментарий id= %d не относится к событию id= %d",
                     comment.getId(), event.getId()));
         }

@@ -7,7 +7,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public interface AdminService {
-
     EventFullDto updateEvent(UpdateEventAdminRequest updateEventAdminRequest, Long eventId);
 
     List<EventFullDto> getEventsWithAdminFilters(List<Long> users, List<String> states, List<Long> categoryIds,

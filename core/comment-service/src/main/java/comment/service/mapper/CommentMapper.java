@@ -1,8 +1,8 @@
-package event.service.comment;
+package comment.service.mapper;
 
+import comment.service.model.Comment;
 import interaction.api.dto.comment.CommentDto;
 import interaction.api.dto.comment.NewCommentDto;
-import event.service.comment.model.Comment;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;

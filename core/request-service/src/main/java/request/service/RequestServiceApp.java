@@ -6,7 +6,7 @@ import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.cloud.openfeign.EnableFeignClients;
 
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = {"request.service", "interaction.api", "event.service, user.service"})
 @EnableDiscoveryClient
 @ConfigurationPropertiesScan
 @EnableFeignClients

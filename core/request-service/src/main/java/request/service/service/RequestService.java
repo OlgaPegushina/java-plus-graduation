@@ -1,10 +1,11 @@
 package request.service.service;
 
-import interaction.api.dto.request.EventRequestStatusUpdateRequestDto;
 import interaction.api.dto.request.EventRequestStatusUpdateResultDto;
 import interaction.api.dto.request.ParticipationRequestDto;
+import interaction.api.dto.request.RequestStatusUpdateDto;
 
 import java.util.List;
+import java.util.Map;
 
 public interface RequestService {
     ParticipationRequestDto createRequest(Long requesterId, Long eventId);
@@ -16,5 +17,7 @@ public interface RequestService {
     List<ParticipationRequestDto> getCurrentUserEventRequests(Long initiatorId, Long eventId);
 
     EventRequestStatusUpdateResultDto updateParticipationRequestsStatus(Long initiatorId, Long eventId,
-                                                                        EventRequestStatusUpdateRequestDto eventRequestStatusUpdateRequestDto);
+                                                                        RequestStatusUpdateDto requestStatusUpdateDto);
+
+    Map<Long, List<ParticipationRequestDto>> prepareConfirmedRequests(List<Long> eventIds);
 }

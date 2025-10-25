@@ -1,4 +1,4 @@
-package event.service.comment.service;
+package comment.service.service;
 
 import interaction.api.dto.comment.CommentDto;
 import interaction.api.dto.comment.NewCommentDto;

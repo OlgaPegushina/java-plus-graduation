@@ -22,7 +22,6 @@ import java.util.Optional;
 @Transactional(readOnly = true)
 @FieldDefaults(level = lombok.AccessLevel.PRIVATE, makeFinal = true)
 public class CategoryServiceImpl implements CategoryService {
-
     CategoryRepository categoryRepository;
     PublicService eventService;
     CategoryMapper mapper;

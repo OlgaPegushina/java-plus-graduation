@@ -10,7 +10,6 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -36,7 +35,7 @@ public class ParticipationRequest {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
 
-    @Column(name = "created", updatable = false)
+    @Column(name = "created", updatable = false, nullable = false)
     @NotNull(message = "Дата создания не может быть пустой")
     @CreationTimestamp
     LocalDateTime created;
@@ -50,8 +49,7 @@ public class ParticipationRequest {
     Long requesterId;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status")
-    @Size(max = 12)
+    @Column(name = "status", nullable = false, length = 12)
     @NotNull(message = "Статус не может быть пустым")
     RequestStatus status;
 }

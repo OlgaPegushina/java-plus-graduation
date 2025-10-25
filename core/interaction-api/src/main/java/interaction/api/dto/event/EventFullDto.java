@@ -38,7 +38,7 @@ public class EventFullDto {
     @JsonFormat(pattern = DATE_TIME_FORMAT)
     LocalDateTime eventDate;
 
-    Long initiatorId;
+    Long initiator;
 
     @JsonProperty("location")
     LocationDto locationDto;

@@ -24,7 +24,6 @@ import java.util.List;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Slf4j
 public class PublicCategoryController {
-
     CategoryService categoryService;
 
     @GetMapping

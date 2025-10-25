@@ -24,8 +24,11 @@ spring:
 
 logging:
   level:
-    root: INFO
-    org.springframework.web: DEBUG  # Логи входящих запросов
-    org.springframework.cloud.gateway: DEBUG  # Если gateway в event (но нет)
-    com.netflix.discovery: DEBUG  # Уже включено
-    org.springframework.cloud.loadbalancer: DEBUG  # Для балансировки
+    org.springframework.cloud.loadbalancer: DEBUG
+    com.netflix.discovery: DEBUG
+    springframework.cloud.openfeign: DEBUG
+    feign: DEBUG
+    request.service.controller: DEBUG
+    org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping: DEBUG
+    org.springframework.web.servlet.DispatcherServlet: DEBUG
+    event.service: DEBUG

@@ -22,8 +22,6 @@ public interface UserMapper {
 
     UserShortDto toShortDto(User user);
 
-    User toUser(UserDto userDto);
-
     default Page<UserDto> toUserDtoPage(List<User> users, Pageable pageable) {
         List<UserDto> userDtos = users == null ? List.of() : users.stream()
                 .map(this::toUserDto)

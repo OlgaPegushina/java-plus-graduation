@@ -15,7 +15,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import event.service.events.services.PrivateService;
-import event.service.feign.client.RequestClient;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -39,7 +38,6 @@ import java.util.List;
 @SuppressWarnings("unused")
 public class PrivateController {
     PrivateService privateService;
-    RequestClient requestClient;
 
     @GetMapping
     public List<EventShortDto> getUserEvents(@PathVariable
@@ -84,15 +82,15 @@ public class PrivateController {
     public List<ParticipationRequestDto> getEventRequestsByOwner(@PathVariable @Positive Long userId,
                                                                  @PathVariable @Positive Long eventId) {
         log.info("Получение информации о запросах на участие в событии текущего пользователя");
-        return requestClient.getCurrentUserEventRequests(userId, eventId);
+        return privateService.getCurrentUserEventRequests(userId, eventId);
     }
 
     @PatchMapping("/{eventId}/requests")
     public EventRequestStatusUpdateResultDto updateEventRequest(@PathVariable @Positive Long userId,
                                                                 @PathVariable @Positive Long eventId,
-                                                                @Valid @RequestBody
+                                                                @RequestBody @Valid
                                                                     EventRequestStatusUpdateRequestDto update) {
         log.info("Изменение статуса заявок на участие в событии текущего пользователя");
-        return requestClient.updateParticipationRequestsStatus(userId, eventId, update);
+        return privateService.updateParticipationRequestsStatus(userId, eventId, update);
     }
 }

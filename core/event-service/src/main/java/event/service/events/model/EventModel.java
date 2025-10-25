@@ -11,6 +11,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -24,7 +25,6 @@ import lombok.experimental.FieldDefaults;
 import event.service.category.model.Category;
 import interaction.api.enums.EventState;
 import event.service.location.Location;
-import org.hibernate.annotations.Formula;
 
 import java.time.LocalDateTime;
 
@@ -37,7 +37,6 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "event")
 public class EventModel {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
@@ -51,8 +50,8 @@ public class EventModel {
     @NotNull(message = "Category не должна быть пустой")
     Category category;
 
-    @Formula("(select count(*) from participation_request p " +
-            " where p.event_id = id and p.status = 'CONFIRMED')")
+    @Column(name = "confirmed_requests")
+    @Min(0)
     Long confirmedRequests;
 
     @Column(name = "created_on")

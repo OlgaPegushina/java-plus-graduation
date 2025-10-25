@@ -1,10 +1,16 @@
 package event.service.events.services.impls;
 
+import event.service.feign.client.RequestClient;
 import feign.FeignException;
 import interaction.api.dto.event.EventFullDto;
 import interaction.api.dto.event.EventShortDto;
 import interaction.api.dto.event.NewEventDto;
 import interaction.api.dto.event.UpdateEventUserRequest;
+import interaction.api.dto.request.BulkRequestStatusUpdateCommand;
+import interaction.api.dto.request.EventRequestStatusUpdateRequestDto;
+import interaction.api.dto.request.EventRequestStatusUpdateResultDto;
+import interaction.api.dto.request.ParticipationRequestDto;
+import interaction.api.dto.request.RequestStatusUpdateDto;
 import interaction.api.dto.user.UserShortDto;
 import interaction.api.exception.BadRequestException;
 import interaction.api.exception.ConflictException;
@@ -39,6 +45,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -52,6 +59,7 @@ public class PrivateServiceImpl implements PrivateService {
     EventRepository eventRepository;
     EventMapper eventMapper;
     UserClient userClient;
+    RequestClient requestClient;
     CategoryService categoryService;
     LocationServiceImpl locationService;
     LocationMapper locationMapper;
@@ -62,12 +70,11 @@ public class PrivateServiceImpl implements PrivateService {
         log.debug("Получен запрос на создание нового события");
 
         UserShortDto user = findExistingUser(userId);
-
         Category category = categoryExistence(newEvent.getCategory());
-
         Location location = locationService.save(locationMapper.toEntity(newEvent.getLocationDto()));
-
         EventModel event = eventMapper.toEntity(newEvent, category, userId, location);
+
+        event.setConfirmedRequests(0L);
 
         return eventMapper.toFullDto(eventRepository.save(event));
     }
@@ -90,10 +97,13 @@ public class PrivateServiceImpl implements PrivateService {
         changeEventState(event, update);
         updateEventFields(event, update);
 
+        fillConfirmedRequestInModel(event);
+        eventRepository.save(event);
+
         log.debug("Сборка события для ответа");
 
         EventFullDto result = eventMapper.toFullDto(event);
-        result.setViews(getAmountOfViews(List.of(event)).get(eventId));
+        result.setViews(getAmountOfViews(List.of(event)).getOrDefault(eventId, 0L));
         return result;
     }
 
@@ -103,13 +113,14 @@ public class PrivateServiceImpl implements PrivateService {
         log.debug("Получен запрос для получения событий пользователя");
         findExistingUser(userId);
 
-        Page<EventModel> events = eventRepository.findByInitiatorId(
-                userId,
-                PageRequest.of(from / size, size, Sort.by("eventDate").descending())
-        );
+        Page<EventModel> eventsPage = eventRepository.findByInitiatorId(
+                userId, PageRequest.of(from / size, size, Sort.by("eventDate").descending()));
 
-        Map<Long, Long> views = getAmountOfViews(events.getContent());
-        return events.getContent().stream()
+        List<EventModel> events = eventsPage.getContent();
+        fillConfirmedRequestsInModels(events);
+        Map<Long, Long> views = getAmountOfViews(events);
+
+        return events.stream()
                 .map(event -> {
                     EventShortDto dto = eventMapper.toShortDto(event);
                     dto.setViews(views.getOrDefault(event.getId(), 0L));
@@ -123,13 +134,12 @@ public class PrivateServiceImpl implements PrivateService {
     public EventFullDto getEventByEventId(Long userId, Long eventId) {
         log.debug("Получен запрос события по id");
         findExistingUser(userId);
-        EventModel event = eventRepository.findByIdAndInitiatorId(eventId, userId)
-                .orElseThrow(() -> new NotFoundException(String.format("Событие с id= %d " +
-                                                                       "у пользователя с id= %d не найдено", eventId, userId)));
+        EventModel event = findByIdAndInitiator(eventId, userId);
 
         log.debug("Сборка события для ответа");
+
         EventFullDto result = eventMapper.toFullDto(event);
-        result.setViews(getAmountOfViews(List.of(event)).get(eventId));
+        result.setViews(getAmountOfViews(List.of(event)).getOrDefault(eventId, 0L));
         return result;
     }
 
@@ -140,7 +150,90 @@ public class PrivateServiceImpl implements PrivateService {
 
     @Override
     public Optional<EventModel> findById(Long id) {
-        return eventRepository.findById(id);
+        return eventRepository.findById(id).map(this::fillConfirmedRequestInModelSafe);
+    }
+
+    @Override
+    public List<ParticipationRequestDto> getCurrentUserEventRequests(Long userId, Long eventId) {
+        EventModel event = findByIdAndInitiator(eventId, userId);
+        return requestClient.getCurrentUserEventRequests(userId, eventId);
+    }
+
+    @Override
+    public EventRequestStatusUpdateResultDto updateParticipationRequestsStatus(Long userId, Long eventId, EventRequestStatusUpdateRequestDto update) {
+        log.info("Смена статусов запросов для события: {}, пользователем: {}", eventId, userId);
+        EventModel event = findByIdAndInitiator(eventId, userId);
+
+        EventFullDto eventFullDto = eventMapper.toFullDto(event);
+        RequestStatusUpdateDto dtoReq = RequestStatusUpdateDto.builder()
+                .updateRequest(update)
+                .event(eventFullDto)
+                .build();
+
+        log.info("Собрали dtoReq: {}", dtoReq.toString());
+
+        BulkRequestStatusUpdateCommand command = new BulkRequestStatusUpdateCommand();
+
+        command.setInitiatorId(userId);
+        command.setEventId(eventId);
+        command.setUpdateDto(dtoReq);
+
+        EventRequestStatusUpdateResultDto result = requestClient.updateParticipationRequestsStatus(command);
+
+        Long newConfirmedCount = (long) result.getConfirmedRequests().size();
+        event.setConfirmedRequests(newConfirmedCount);
+
+        eventRepository.save(event);
+
+        log.debug("Обновлен confirmedRequests для event {} в значение {}", eventId, newConfirmedCount);
+        return result;
+    }
+
+    private EventModel findByIdAndInitiator(Long eventId, Long initiatorId) {
+        EventModel event = eventRepository.findByIdAndInitiatorId(eventId, initiatorId)
+                .orElseThrow(() -> new NotFoundException(
+                        String.format("Событие с id %d для пользователя с id %d не найдено.", eventId, initiatorId)));
+        fillConfirmedRequestInModel(event);
+        return event;
+    }
+
+    private EventModel fillConfirmedRequestInModelSafe(EventModel event) {
+        fillConfirmedRequestInModel(event);
+        return event;
+    }
+
+    private void fillConfirmedRequestsInModels(List<EventModel> events) {
+        if (events == null || events.isEmpty()) return;
+
+        List<Long> eventIds = events.stream()
+                .map(EventModel::getId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+        if (eventIds.isEmpty()) {
+            events.forEach(e -> e.setConfirmedRequests(0L));
+            return;
+        }
+
+        try {
+            Map<Long, List<ParticipationRequestDto>> confirmedMap = requestClient.prepareConfirmedRequests(eventIds);
+            events.forEach(event -> {
+                List<ParticipationRequestDto> reqs = confirmedMap.getOrDefault(event.getId(), Collections.emptyList());
+                event.setConfirmedRequests((long) reqs.size());
+            });
+        } catch (FeignException e) {
+            log.warn("Не удалось заполнить confirmedRequests для eventIds {}: Fallback 0L", eventIds, e);
+            events.forEach(event -> event.setConfirmedRequests(0L));
+        }
+    }
+
+    private void fillConfirmedRequestInModel(EventModel event) {
+        if (event != null && event.getId() != null) {
+            fillConfirmedRequestsInModels(List.of(event));
+        } else if (event != null) {
+            event.setConfirmedRequests(0L);
+        }
     }
 
     private UserShortDto findExistingUser(Long userId) {

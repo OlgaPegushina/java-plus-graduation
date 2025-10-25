@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import static stats.dto.constant.Const.DATE_TIME_FORMAT;
+import static interaction.api.utility.AppConstants.DATE_TIME_FORMAT;
 
 @RestController
 @RequiredArgsConstructor
@@ -42,9 +42,9 @@ public class AdminController {
     }
 
     @GetMapping
-    public List<EventFullDto> getEvents(@RequestParam(required = false) List<Long> userIds,
+    public List<EventFullDto> getEvents(@RequestParam(required = false) List<Long> users,
                                         @RequestParam(required = false) List<String> states,
-                                        @RequestParam(required = false) List<Long> categoryIds,
+                                        @RequestParam(required = false) List<Long> categories,
 
                                         @RequestParam(required = false)
                                         @DateTimeFormat(pattern = DATE_TIME_FORMAT)
@@ -57,7 +57,7 @@ public class AdminController {
                                         @RequestParam(defaultValue = "0") Integer from,
                                         @RequestParam(defaultValue = "10") Integer size) {
         log.info("Поступил запрос на обновление события для админа");
-        return adminService.getEventsWithAdminFilters(userIds, states, categoryIds, rangeStart, rangeEnd, from, size);
+        return adminService.getEventsWithAdminFilters(users, states, categories, rangeStart, rangeEnd, from, size);
     }
 
     @GetMapping("/{eventId}")

@@ -1,5 +1,6 @@
-package event.service.comment.controller;
+package comment.service.controller;
 
+import comment.service.service.CommentService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -9,7 +10,6 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import interaction.api.dto.comment.CommentDto;
 import interaction.api.dto.comment.NewCommentDto;
-import event.service.comment.service.CommentService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;

@@ -16,10 +16,17 @@ spring:
           predicates:
             - Path=/admin/categories/**, /categories/**
 
+        - id: comment_service_route
+          uri: lb://comment-service
+          predicates:
+            - Path=/admin/events/{eventId}/comments/**, /users/{userId}/events/{eventId}/comments/**
+          order: 0
+
         - id: event_service_other
           uri: lb://event-service
           predicates:
             - Path=/admin/events/**, /users/*/events/**, /events/**, /admin/compilations/**, /compilations/**
+          order: 1
 
         - id: stats_server_route
           uri: lb://stats-server
@@ -35,6 +42,11 @@ spring:
           uri: lb://request-service
           predicates:
             - Path=/users/*/requests/**
+
+        - id: request_service_route_confirmed
+          uri: lb://request-service
+          predicates:
+            - Path=/users/requests/**
 
 management:
   endpoint:
