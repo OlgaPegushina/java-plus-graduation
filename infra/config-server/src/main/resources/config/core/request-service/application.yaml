@@ -1,0 +1,46 @@
+server:
+  port: 0
+  tomcat:
+    max-http-post-size: 2097152
+    accept-count: 100
+
+spring:
+  output:
+    ansi:
+      enabled: always
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:6541/request_db
+    username: request_db
+    password: request_db
+  sql:
+    init:
+      mode: never
+  jpa:
+    show-sql: true
+    defer-datasource-initialization: true
+    hibernate:
+      ddl-auto: create
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        jdbc.time_zone: UTC
+
+  mvc:
+    hiddenmethod:  # Это ключевой фильтр, мешающий чистому PATCH
+      filter:
+        enabled: false  # Отключить — позволит PATCH проходить напрямую к контроллеру
+  web:
+    resources:
+      add-mappings: false  # Отключить статические ресурсы, если они конфликтуют (не обязательно)
+
+logging:
+  level:
+    org.springframework.cloud.loadbalancer: DEBUG
+    com.netflix.discovery: DEBUG
+    springframework.cloud.openfeign: DEBUG
+    feign: DEBUG
+    request.service.controller: DEBUG
+    org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping: DEBUG
+    org.springframework.web.servlet.DispatcherServlet: DEBUG

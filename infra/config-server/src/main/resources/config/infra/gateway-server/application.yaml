@@ -2,23 +2,51 @@ server:
   port: 8080
 
 spring:
-  application:
-    name: gateway-server
+  output:
+    ansi:
+      enabled: always
   cloud:
     gateway:
       discovery:
         locator:
           enabled: true
       routes:
-        - id: main_service_route
-          uri: lb://main-service
+        - id: event_service_categories
+          uri: lb://event-service
           predicates:
-            - Path=/categories/**, /admin/**, /users/**, /events/**, /compilations/**
+            - Path=/admin/categories/**, /categories/**
+
+        - id: comment_service_route
+          uri: lb://comment-service
+          predicates:
+            - Path=/admin/events/{eventId}/comments/**, /users/{userId}/events/{eventId}/comments/**
+          order: 0
+
+        - id: event_service_other
+          uri: lb://event-service
+          predicates:
+            - Path=/admin/events/**, /users/*/events/**, /events/**, /admin/compilations/**, /compilations/**
+          order: 1
 
         - id: stats_server_route
           uri: lb://stats-server
           predicates:
             - Path=/hit/**, /stats/**
+
+        - id: user_service_route
+          uri: lb://user-service
+          predicates:
+            - Path=/admin/users/**
+
+        - id: request_service_route
+          uri: lb://request-service
+          predicates:
+            - Path=/users/*/requests/**
+
+        - id: request_service_route_confirmed
+          uri: lb://request-service
+          predicates:
+            - Path=/users/requests/**
 
 management:
   endpoint:
