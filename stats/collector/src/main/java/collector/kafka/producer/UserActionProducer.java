@@ -14,7 +14,7 @@ import ru.practicum.ewm.stats.avro.UserActionAvro;
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class UserActionProducer {
-    KafkaTemplate<String, UserActionAvro> kafkaTemplate;
+    KafkaTemplate<String, Object> kafkaTemplate;
     StatsKafkaProducerConfig config;
 
     public void sendUserAction(UserActionAvro userAction) {

@@ -20,7 +20,7 @@ import java.util.Map;
 @Slf4j
 @Getter
 public class StatsKafkaProducerConfig {
-    @Value("${spring.kafka.producer.bootstrap-servers}")
+    @Value("${spring.kafka.bootstrap-servers}")
     String bootstrapServers;
 
     @Value("${spring.kafka.producer.key-serializer}")

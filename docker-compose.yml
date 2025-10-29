@@ -18,6 +18,11 @@ services:
       KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka:29093'
       KAFKA_LISTENERS: 'PLAINTEXT://kafka:29092,CONTROLLER://kafka:29093,PLAINTEXT_HOST://0.0.0.0:9092'
       CLUSTER_ID: 'K0EA9p0yEe6MkAAAAkKsEg'
+    healthcheck:
+      test: [ "CMD", "cub", "kafka-ready", "-b", "kafka:29092", "1", "5" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   kafka-init-topics:
     image: confluentinc/confluent-local:7.4.3
@@ -87,7 +92,7 @@ services:
 
   # --- СЕРВИС COLLECTOR статистики ---
   collector-service:
-    build: core/stats/collector
+    build: ./stats/collector
     container_name: graduation-collector-service
     depends_on:
       discovery-server:
@@ -98,8 +103,8 @@ services:
         condition: service_healthy
     restart: unless-stopped
     environment:
-      EUREKA_URI: http://discovery-server:8761/eureka/
-      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
 
   # --- СЕРВИС ПОЛЬЗОВАТЕЛЕЙ ---
   user-service:

@@ -4,13 +4,14 @@ grpc:
 
 spring:
   kafka:
+    bootstrap-servers: kafka:29092
     producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: ru.practicum.kafka.serializer.GeneralAvroSerializer
       topic:
         user-actions: stats.user-actions.v1
         events-similarity: stats.events-similarity.v1
-      bootstrap-servers: localhost:9092
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: ru.practicum.kafka.serializer.GeneralAvroSerializer
+
   http:
     encoding:
       charset: UTF-8
@@ -22,5 +23,6 @@ spring:
 
 logging:
   level:
-    org.springframework.cloud.loadbalancer: DEBUG
-    com.netflix.discovery: DEBUG
+    org.springframework.cloud.loadbalancer: WARN
+    com.netflix.discovery: WARN
+    collector: DEBUG
