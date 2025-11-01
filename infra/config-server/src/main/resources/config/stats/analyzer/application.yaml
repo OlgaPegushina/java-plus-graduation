@@ -2,9 +2,6 @@ grpc:
   server:
     port: 0
 
-server:
-  port: 0
-
 spring:
   output:
     ansi:
