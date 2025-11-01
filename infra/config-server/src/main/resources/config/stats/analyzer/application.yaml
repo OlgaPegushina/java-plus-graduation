@@ -43,9 +43,9 @@ spring:
 
 analyzer:
   weights:
-    view: 0.4
-    register: 0.8
-    like: 1.0
+    VIEW: 0.4
+    REGISTER: 0.8
+    LIKE: 1.0
 
 logging:
   level:

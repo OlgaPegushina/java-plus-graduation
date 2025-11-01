@@ -6,7 +6,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 import ru.practicum.ewm.stats.avro.EventSimilarityAvro;
 
-import java.time.Instant;
+import java.util.List;
 
 @Component
 @Slf4j
@@ -20,33 +20,21 @@ public class SimilarityProducer {
         this.topicName = topicName;
     }
 
-    public void sendSimilarityScore(long eventId1, long eventId2, double score, Instant timestamp) {
-        // -- Упорядочивание Id
-        long eventA = Math.min(eventId1, eventId2);
-        long eventB = Math.max(eventId1, eventId2);
-
-        EventSimilarityAvro message = EventSimilarityAvro.newBuilder()
-                .setEventA(eventA)
-                .setEventB(eventB)
-                .setScore(score)
-                .setTimestamp(timestamp)
-                .build();
-
-        log.debug("Подготовка к отправке оценки сходства в топик '{}': {}", topicName, message);
-
-        kafkaTemplate.send(topicName, String.valueOf(eventA), message)
+   public void sendSimilarityScores(List<EventSimilarityAvro> messages) {
+       log.debug("Отправка {} сообщений в топик '{}'", messages.size(), topicName);
+       for (EventSimilarityAvro message : messages) {
+           send(message);
+       }
+   }
+    private void send(EventSimilarityAvro message) {
+        kafkaTemplate.send(topicName, message)
                 .whenComplete((result, exception) -> {
                     if (exception == null) {
-                        log.info("Оценка сходства успешно отправлена: message={}, topic={}, partition={}, offset={}",
-                                message,
-                                result.getRecordMetadata().topic(),
-                                result.getRecordMetadata().partition(),
-                                result.getRecordMetadata().offset());
+                        log.info("Оценка сходства успешно отправлена: message={}", message);
                     } else {
                         log.error("Ошибка при отправке оценки сходства в топик '{}': message={}",
                                 topicName, message, exception);
                     }
                 });
-        log.debug("Отправлена оценка сходства: {}", message);
     }
 }

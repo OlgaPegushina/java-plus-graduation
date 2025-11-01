@@ -6,7 +6,7 @@ spring:
     bootstrap-servers: localhost:9092
     consumer:
       group-id: aggregator-group
-      auto-offset-reset: earliest
+      #auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: ru.practicum.kafka.deserializer.UserActionAvroDeserializer
       topic:
@@ -28,9 +28,9 @@ spring:
 
 aggregator:
   weights:
-    view: 0.4
-    register: 0.8
-    like: 1.0
+    VIEW: 0.4
+    REGISTER: 0.8
+    LIKE: 1.0
 
 logging:
   level:
