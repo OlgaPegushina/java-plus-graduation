@@ -1,7 +1,9 @@
 package aggregator.listener;
 
 import aggregator.service.AggregatorService;
+import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
@@ -10,8 +12,10 @@ import ru.practicum.ewm.stats.avro.UserActionAvro;
 @Component
 @RequiredArgsConstructor
 @Slf4j
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@SuppressWarnings("unused")
 public class UserActionListener {
-    private final AggregatorService similarityService;
+    AggregatorService similarityService;
 
     @KafkaListener(
             topics = "${spring.kafka.consumer.topic.user-actions}",

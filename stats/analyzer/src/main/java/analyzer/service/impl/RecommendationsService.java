@@ -1,7 +1,5 @@
 package analyzer.service.impl;
 
-import analyzer.config.WeightProperties;
-import analyzer.model.ActionType;
 import analyzer.model.Recommendation;
 import analyzer.repository.EventSimilarityRepository;
 import analyzer.repository.UserActionRepository;
@@ -34,7 +32,6 @@ import java.util.stream.Collectors;
 public class RecommendationsService implements analyzer.service.RecommendationsService {
     UserActionRepository userActionRepository;
     EventSimilarityRepository eventSimilarityRepository;
-    WeightProperties weightProperties;
 
     @Override
     public List<RecommendedEventProto> getRecommendationsForUser(UserPredictionsRequestProto request) {
@@ -50,7 +47,7 @@ public class RecommendationsService implements analyzer.service.RecommendationsS
             return List.of();
         }
 
-        // Найти похожие новые события, исключая все, что пользователь уже видел.
+        // -- Найти похожие новые события, исключая все, что пользователь уже видел.
         Set<Long> allUserEvents = userActionRepository.findEventIdsByUserId(userId);
 
         Pageable candidatesPageable = PageRequest.of(0, limit);
@@ -66,21 +63,21 @@ public class RecommendationsService implements analyzer.service.RecommendationsS
             return List.of();
         }
 
-        // найти ближайших просмотренных соседей для всех кандидатов.
+        // -- найти ближайших просмотренных соседей для всех кандидатов.
         Map<Long, List<Recommendation>> neighboursMap = eventSimilarityRepository.findNeighbourEventsFrom(
                 candidateEventIds,
                 allUserEvents,
                 limit
         );
 
-        // Получить оценки пользователя для всех найденных соседей
+        // -- Получить оценки пользователя для всех найденных соседей
         Set<Long> allNeighbourIds = neighboursMap.values().stream()
                 .flatMap(List::stream)
                 .map(Recommendation::getEventId)
                 .collect(Collectors.toSet());
         Map<Long, Double> userRatings = userActionRepository.findWeightsByUserIdAndEventIds(userId, allNeighbourIds);
 
-        // Вычисляем финальный score
+        // -- Вычисляем финальный score
         List<RecommendedEventProto> finalRecommendations = candidateEventIds.stream()
                 .map(candidateId -> {
                     List<Recommendation> neighbours = neighboursMap.getOrDefault(candidateId, List.of());
@@ -157,14 +154,5 @@ public class RecommendationsService implements analyzer.service.RecommendationsS
                         .build())
                 .sorted(Comparator.comparing(RecommendedEventProto::getScore).reversed())
                 .collect(Collectors.toList());
-    }
-
-    private double getWeightForAction(ActionType actionType) {
-        return switch (actionType) {
-            case VIEW -> weightProperties.getView();
-            case REGISTER -> weightProperties.getRegister();
-            case LIKE -> weightProperties.getLike();
-            default -> throw new IllegalArgumentException("Вес для типа " + actionType + " не определен.");
-        };
     }
 }

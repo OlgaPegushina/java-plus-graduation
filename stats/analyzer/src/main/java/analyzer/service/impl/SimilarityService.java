@@ -16,10 +16,11 @@ import ru.practicum.ewm.stats.avro.EventSimilarityAvro;
 @Slf4j
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Transactional
-public class SimilarityService {
+public class SimilarityService implements analyzer.service.SimilarityService {
     EventSimilarityRepository similarityRepository;
     SimilarityMapper similarityMapper;
 
+    @Override
     public void handleSimilarity(EventSimilarityAvro avro) {
         log.info("Создание схожести события: {}", avro);
 
