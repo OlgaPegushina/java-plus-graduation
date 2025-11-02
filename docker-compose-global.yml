@@ -145,26 +145,6 @@ services:
       - JAVA_OPTS=-Xms128m -Xmx256m
     restart: unless-stopped
 
-  # --- СЕРВИС СТАТИСТИКИ ---
-  stats-server:
-    container_name: graduation-stats-server
-    build:
-      context: ./stats/stats-server
-    depends_on:
-      postgres:
-        condition: service_healthy
-      discovery-server:
-        condition: service_healthy
-      config-server:
-        condition: service_started
-    environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/stat
-      - SPRING_DATASOURCE_USERNAME=stat
-      - SPRING_DATASOURCE_PASSWORD=stat
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka
-      - JAVA_OPTS=-Xms128m -Xmx512m
-    restart: unless-stopped
-
   # --- СЕРВИС КОММЕНТАРИЕВ ---
   comment-service:
     container_name: graduation-comment-service
